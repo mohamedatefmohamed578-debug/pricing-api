@@ -1,120 +1,50 @@
 export default function handler(req, res) {
-
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   const { bedrooms, bathrooms, frequency } = req.body;
 
-  if (!bedrooms || !bathrooms || !frequency) {
-    return res.status(400).json({
-      error: "Bedrooms, Bathrooms, and Frequency are required."
-    });
+  // 1. التحقق من وجود المتغيرات (مع السماح بقيمة الصفر)
+  if (bedrooms === undefined || bedrooms === null || bathrooms === undefined || bathrooms === null || !frequency) {
+    return res.status(400).json({ error: "Bedrooms, Bathrooms, and Frequency are required." });
   }
 
-  /* =========================
-     🔧 PRICING VARIABLES
-  ========================= */
-
-  const PRICE_PER_BEDROOM = 50;
-  const PRICE_PER_BATHROOM = 60;
-
-  const WEEKLY_DISCOUNT = 20;
-  const BIWEEKLY_DISCOUNT = 15;
-  const MONTHLY_DISCOUNT = 10;
-
-  const FIRST_TIME_SURCHARGE = 30;
-
-  const MINUTES_PER_BEDROOM = 20;
-  const MINUTES_PER_BATHROOM = 30;
-
-  /* =========================
-     🧠 Normalize Frequency
-  ========================= */
-
-  function normalizeFrequency(input) {
-    const f = input.toLowerCase().replace("-", "").trim();
-
-    if (
-      f === "weekly" ||
-      f === "every week" ||
-      f === "once a week"
-    ) return "weekly";
-
-    if (
-      f === "biweekly" ||
-      f === "every two weeks" ||
-      f === "every 2 weeks" ||
-      f === "twice a month"
-    ) return "biweekly";
-
-    if (
-      f === "monthly" ||
-      f === "once a month" ||
-      f === "every month"
-    ) return "monthly";
-
-    return null;
-  }
-
-  const normalizedFrequency = normalizeFrequency(frequency);
-
-  if (!normalizedFrequency) {
-    return res.status(400).json({
-      error: "Invalid frequency value."
-    });
-  }
-
-  /* =========================
-     🧮 Convert to Numbers
-  ========================= */
-
+  // 2. تحويل القيم إلى أرقام والتحقق من أنها ليست سالبة
   const beds = Number(bedrooms);
   const baths = Number(bathrooms);
 
-  const basePrice =
-    beds * PRICE_PER_BEDROOM +
-    baths * PRICE_PER_BATHROOM;
+  if (isNaN(beds) || beds < 0 || isNaN(baths) || baths < 0) {
+    return res.status(400).json({ error: "Bedrooms and Bathrooms must be valid numbers (0 or higher)." });
+  }
 
-  /* =========================
-     🏠 Deep Clean
-  ========================= */
-
-  const firstTimePrice =
-    basePrice +
-    (basePrice * FIRST_TIME_SURCHARGE) / 100;
-
-  /* =========================
-     🔁 Discount Logic
-  ========================= */
-
+  // 3. معالجة وتوحيد التكرار مع تحديد نسبة الخصم في نفس الوقت (اختصار للحشو)
+  const f = String(frequency).toLowerCase().replace("-", "").trim();
+  let normalizedFrequency = null;
   let discountPercent = 0;
 
-  if (normalizedFrequency === "weekly")
-    discountPercent = WEEKLY_DISCOUNT;
+  if (["weekly", "every week", "once a week"].includes(f)) {
+    normalizedFrequency = "weekly";
+    discountPercent = 20;
+  } else if (["biweekly", "every two weeks", "every 2 weeks", "twice a month"].includes(f)) {
+    normalizedFrequency = "biweekly";
+    discountPercent = 15;
+  } else if (["monthly", "once a month", "every month"].includes(f)) {
+    normalizedFrequency = "monthly";
+    discountPercent = 10;
+  }
 
-  if (normalizedFrequency === "biweekly")
-    discountPercent = BIWEEKLY_DISCOUNT;
+  if (!normalizedFrequency) {
+    return res.status(400).json({ error: "Invalid frequency value." });
+  }
 
-  if (normalizedFrequency === "monthly")
-    discountPercent = MONTHLY_DISCOUNT;
+  // 4. الحسابات النهائية (دقيقة ومباشرة)
+  const basePrice = (beds * 50) + (baths * 60);
+  const firstTimePrice = basePrice * 1.30; // إضافة 30% لأول مرة
+  const recurringPrice = basePrice * (1 - discountPercent / 100);
+  const estimatedDuration = (beds * 20) + (baths * 30);
 
-  const recurringPrice =
-    basePrice -
-    (basePrice * discountPercent) / 100;
-
-  /* =========================
-     ⏱ Duration
-  ========================= */
-
-  const estimatedDuration =
-    beds * MINUTES_PER_BEDROOM +
-    baths * MINUTES_PER_BATHROOM;
-
-  /* =========================
-     📤 Response
-  ========================= */
-
+  // 5. إرسال النتيجة
   return res.status(200).json({
     recurring_price: Number(recurringPrice.toFixed(2)),
     first_time_price: Number(firstTimePrice.toFixed(2)),
