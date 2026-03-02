@@ -84,9 +84,22 @@ export default async function handler(req, res) {
       availableSlotsList.sort((a, b) => new Date(a) - new Date(b));
       const next_available_slots = availableSlotsList.slice(0, 2);
 
+      // تحويل التواريخ لصيغة بشرية جاهزة للوكيل (يوم وساعة)
+      const next_available_slots_readable = next_available_slots.map(isoString => {
+        const dateObj = new Date(isoString);
+        return dateObj.toLocaleString('en-US', { 
+          weekday: 'long', 
+          hour: 'numeric', 
+          minute: '2-digit', 
+          hour12: true,
+          timeZone: 'America/Los_Angeles' // تقدر تغير التايم زون حسب مكان شركتك
+        });
+      });
+
       return res.status(200).json({
         is_available: false,
-        next_available_slots: next_available_slots
+        next_available_slots: next_available_slots,
+        next_available_slots_readable: next_available_slots_readable
       });
     }
 
