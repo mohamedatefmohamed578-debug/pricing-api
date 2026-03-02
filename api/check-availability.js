@@ -98,6 +98,7 @@ export default async function handler(req, res) {
 
       return res.status(200).json({
         is_available: false,
+        slots_count: next_available_slots.length, 
         next_available_slots: next_available_slots,
         next_available_slots_readable: next_available_slots_readable
       });
