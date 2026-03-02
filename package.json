@@ -1,0 +1,9 @@
+{
+  "name": "booking-and-pricing-api",
+  "version": "1.0.0",
+  "description": "Backend API for Retell AI Voice Agent",
+  "dependencies": {
+    "axios": "^1.6.0",
+    "chrono-node": "^2.7.0"
+  }
+}
