@@ -6,27 +6,31 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
 
-  // 1. استلام كل المتغيرات اللي الوكيل جمعها من العميل
+  // 1. استلام كل المتغيرات الجديدة من Retell AI
   const { 
     preferred_day, 
     preferred_time, 
     estimated_duration,
     first_name,
     last_name,
-    phone_number,
     street_address,
-    zip_code
+    zip_code,
+    caller_phone,
+    new_phone_number,
+    access_instructions,
+    pets_info,
+    last_cleaning_timeframe
   } = req.body;
 
   try {
-    // 2. تحويل وتجهيز وقت البداية والنهاية زي ما عملنا في الفحص
+    // 2. تحويل وقت البداية والنهاية
     const rawDateTime = `${preferred_day} ${preferred_time}`;
     const parsedDate = chrono.parseDate(rawDateTime);
     
     if (!parsedDate) {
       return res.status(200).json({
         booking_success: false,
-        agent_instruction: "حدث خطأ في قراءة الوقت، يرجى سؤال العميل عن توضيح الوقت مرة أخرى."
+        agent_instruction: "There was an issue parsing the exact time. Please ask the caller to clarify their preferred time once more."
       });
     }
 
@@ -37,11 +41,26 @@ export default async function handler(req, res) {
     const CAL_API_KEY = process.env.CAL_API_KEY;
     const EVENT_TYPE_ID = process.env.CAL_EVENT_TYPE_ID;
 
-    // 3. تجهيز بيانات العميل (بما فيها الإيميل الوهمي عشان Cal.com)
-    const fullName = `${first_name} ${last_name}`;
-    const dummyEmail = `${first_name.replace(/\s+/g, '') || 'client'}@cleaning-booking.com`;
+    // 3. تجهيز بيانات العميل بذكاء (باللغة الإنجليزية)
+    const fullName = `${first_name || ''} ${last_name || ''}`.trim() || 'New Client';
+    const dummyEmail = `${fullName.replace(/\s+/g, '') || 'client'}@cleaning-booking.com`;
+    
+    // منطق رقم التليفون (لو العميل ادى رقم جديد ناخده، لو لأ ناخد رقم المتصل)
+    const finalPhone = new_phone_number || caller_phone || 'Not Provided';
+    
+    // العنوان بالكامل
+    const fullAddress = `${street_address || ''}, ${zip_code || ''}`.trim();
 
-    // 4. ضرب الـ API بتاع Cal.com لتأكيد الحجز الفعلي
+    // 4. تنسيق الملاحظات التشغيلية لفريق التنظيف (عشان تظهر في جوجل كاليندر بالإنجليزي الاحترافي)
+    const teamNotes = `
+🧹 Cleaning Operation Details:
+-------------------------
+🔑 Access Instructions: ${access_instructions || 'Not Specified'}
+🐶 Pets in Home: ${pets_info || 'None'}
+📅 Last Professional Cleaning: ${last_cleaning_timeframe || 'Unknown'}
+    `.trim();
+
+    // 5. إرسال الحجز الفعلي لـ Cal.com
     const bookingResponse = await axios.post(`https://api.cal.com/v1/bookings`, {
       eventTypeId: parseInt(EVENT_TYPE_ID),
       start: startTime.toISOString(),
@@ -49,10 +68,11 @@ export default async function handler(req, res) {
       responses: {
         name: fullName,
         email: dummyEmail,
-        phone: phone_number,
-        location: `${street_address} - ${zip_code}`
+        phone: finalPhone,
+        location: fullAddress,
+        notes: teamNotes // هنا بنبعت الملاحظات النظيفة بالإنجليزي
       },
-      timeZone: 'America/Los_Angeles', // ⚠️ متنساش تعدل التايم زون ده لبتوع منطقتك
+      timeZone: 'America/Los_Angeles', // ⚠️ تأكد من التايم زون للولاية اللي شغال فيها
       metadata: {
         source: "Voice AI Agent"
       }
@@ -62,22 +82,23 @@ export default async function handler(req, res) {
       }
     });
 
-    // 5. الرد على Retell AI بالنجاح
+    // 6. الرد على الوكيل بالنجاح (تعليمات إنجليزية احترافية للوكيل)
     if (bookingResponse.data && bookingResponse.data.booking) {
       return res.status(200).json({
         booking_success: true,
         booking_id: bookingResponse.data.booking.id,
-        agent_instruction: "تم تأكيد الحجز بنجاح في النظام. اشكر العميل وأنهي المكالمة بحماس."
+        agent_instruction: "The appointment has been successfully booked in the system. Enthusiastically thank the customer for choosing us and warmly end the call."
       });
     } else {
-      throw new Error("لم يرجع تأكيد الحجز من التقويم.");
+      throw new Error("Did not receive booking confirmation from the calendar.");
     }
 
   } catch (error) {
     console.error("Error booking appointment:", error?.response?.data || error.message);
+    // الرد في حالة وجود خطأ (عشان الوكيل يتصرف بشياكة)
     return res.status(200).json({ 
       booking_success: false,
-      agent_instruction: "اعتذر للعميل بلطف، وأخبره أن هناك عطل تقني بسيط في النظام يمنع تثبيت الحجز الآن، وسيقوم فريق الدعم بالاتصال به فوراً لتأكيد الموعد."
+      agent_instruction: "Politely apologize to the caller. Inform them that there is a slight system delay in locking the calendar, but assure them a manager will call them right back to fully confirm their slot. Then politely end the call."
     });
   }
 }
