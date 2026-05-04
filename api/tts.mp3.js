@@ -8,8 +8,8 @@ export default async function handler(req, res) {
   }
 
   // حط الـ API Key الجديد بتاعك هنا بين علامات التنصيص
-  const apiKey = "sk_0762b1449a9e629a3a652dcde9f33e37becda8bd6b15ddfe"; 
-  const modelId = "eleven_multilingual_v2";
+  const apiKey = "sk_479405c7c504145319326bde4d2135f56f0b16d52a3b6b90"; 
+  const modelId = "eleven_v3";
 
   try {
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}?output_format=mp3_44100_32`, {
