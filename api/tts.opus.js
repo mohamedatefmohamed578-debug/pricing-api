@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       headers: {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json',
-        'Accept': 'audio/opus'
+        'Accept': 'audio/ogg'
       },
       body: JSON.stringify({
         text: text,
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    res.setHeader('Content-Type', 'audio/opus');
+    res.setHeader('Content-Type', 'audio/ogg; codecs=opus');
     res.send(Buffer.from(audioBuffer));
 
   } catch (error) {
