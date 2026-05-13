@@ -1,6 +1,5 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Content-Type', 'audio/ogg');
 
   const { text, voice_id } = req.query;
 
@@ -18,7 +17,7 @@ export default async function handler(req, res) {
       headers: {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json',
-        'Accept': 'audio/ogg'
+        'Accept': 'audio/opus'
       },
       body: JSON.stringify({
         text: text,
@@ -43,7 +42,7 @@ export default async function handler(req, res) {
     }
 
     const audioBuffer = await response.arrayBuffer();
-    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Content-Type', 'audio/opus');
     res.send(Buffer.from(audioBuffer));
 
   } catch (error) {
