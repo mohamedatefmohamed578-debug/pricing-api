@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   // حط الـ API Key الجديد بتاعك هنا بين علامات التنصيص
-  const apiKey = "sk_479405c7c504145319326bde4d2135f56f0b16d52a3b6b90"; 
+  const apiKey = "sk_ede5bbd6a821291c851cbfef4155f66380c1b9f444422f51"; 
   const modelId = "eleven_v3";
 
   try {
