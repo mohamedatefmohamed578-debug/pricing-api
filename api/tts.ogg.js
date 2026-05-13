@@ -1,5 +1,6 @@
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Content-Type', 'audio/ogg');
 
   const { text, voice_id } = req.query;
 
@@ -12,12 +13,12 @@ export default async function handler(req, res) {
   const modelId = "eleven_v3";
 
   try {
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}?output_format=mp3_44100_32`, {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}?output_format=opus_48000_96`, {
       method: 'POST',
       headers: {
         'xi-api-key': apiKey,
         'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg'
+        'Accept': 'audio/ogg'
       },
       body: JSON.stringify({
         text: text,
